@@ -62,6 +62,26 @@ threshold = joblib.load(
     "threshold.pkl"
 )
 
+rf = modelo.named_steps["classificador"]
+
+importancias = rf.feature_importances_
+
+preprocessador = modelo.named_steps["preprocessamento"]
+
+nomes_variaveis = (
+    preprocessador.get_feature_names_out()
+)
+
+df_importancia = pd.DataFrame({
+    "variavel": nomes_variaveis,
+    "importancia": importancias
+})
+
+df_importancia = df_importancia.sort_values(
+    by="importancia",
+    ascending=False
+)
+
 # =====================================================
 # CARREGAR CONJUNTO TESTE
 # =====================================================
@@ -393,6 +413,29 @@ if st.session_state.processado:
 
             st.pyplot(fig_cm)
 
+
+    # =====================================================
+    # IMPORTANCIA DAS VARIÁVEIS
+    # =====================================================
+    with st.expander("Análise de Variáveis",expanded=False):
+        #st.subheader("Resultados")
+        top10 = df_importancia.head(10)
+
+        fig, ax = plt.subplots()
+
+        ax.barh(
+            top10["variavel"],
+            top10["importancia"]
+        )
+
+        ax.set_title(
+            "Importância das Variáveis"
+        )
+
+        ax.invert_yaxis()
+
+        st.pyplot(fig)
+
     # =====================================================
     # ACERTOS
     # =====================================================
@@ -451,3 +494,5 @@ if st.session_state.processado:
         )
 
         st.dataframe(erros_df, hide_index=True, on_select="rerun", selection_mode="single-row")
+
+#streamlit run ml_colo_web.py
