@@ -29,6 +29,15 @@ st.set_page_config(
     layout="wide"
 )
 
+# CSS da aplicação
+st.markdown("""
+<style>
+[data-testid="stSidebar"] {
+    background-color:#c85162;
+}
+</style>
+""", unsafe_allow_html=True)
+
 col1, col2, col3 = st.columns([4,1,2])
 
 with col1:
@@ -121,69 +130,84 @@ styled_df = (
 st.dataframe(styled_df, hide_index=True)
 
 
-with st.expander("Configuração da Simulação",expanded = True):
-    with st.container(border=True):
+#with st.expander("Configuração da Simulação",expanded = True):
+with st.sidebar:
+    st.header("Configuração da Simulação")
 
-        st.subheader("Configuração da Simulação")
+    col1, col2 = st.columns([2,1])
 
-        col1, col2, col3, col4, col5 = st.columns([2,1,2,2,6])
+    with col1:
 
-        with col1:
+        percentual = st.number_input(
+            "Percentual (%)",
+            min_value=1,
+            max_value=100,
+            value=100
+        )
 
-            percentual = st.number_input(
-                "Percentual (%)",
-                min_value=1,
-                max_value=100,
-                value=100
-            )
+    with col2:
 
-        with col3:
+        qtd_registros = round(
+            len(df) * percentual / 100
+        )
 
-            qtd_registros = round(
-                len(df) * percentual / 100
-            )
+        st.metric(
+            "Registros",
+            qtd_registros
+        )
 
-            st.metric(
-                "Registros",
-                qtd_registros
-            )
+    # col1, col2, col3 = st.columns([1,4,1])
 
-        with col4:
+    # with col2:
 
-            st.write("")
+    st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: #954535;
+        color: white;
+        border-radius: 8px;
+    }
 
-            st.markdown("""
-            <style>
-            div.stButton > button {
-                background-color: #954535;
-                color: white;
-                border-radius: 8px;
-            }
+    div.stButton > button:hover {
+        background-color: #B7410E;
+        color: white;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-            div.stButton > button:hover {
-                background-color: #B7410E;
-                color: white;
-            }
-            </style>
-            """, unsafe_allow_html=True)
+    if "processado" not in st.session_state:
+        st.session_state.processado = False
 
-            if "processado" not in st.session_state:
-                st.session_state.processado = False
+    if st.button("Processar Modelo", use_container_width=True):
 
-            if st.button("Processar Modelo"):
-                st.session_state.processado = True
-                df_amostra = df.sample(frac=percentual / 100, random_state=None)
+        barra = st.progress(0)
 
-                X = df_amostra.drop(columns=["risco_alto"])
-                y = df_amostra["risco_alto"]
+        barra.progress(20)
 
-                y_prob = modelo.predict_proba(X)[:, 1]
-                y_pred = (y_prob >= threshold).astype(int)
+        st.session_state.processado = True
+        df_amostra = df.sample(frac=percentual / 100, random_state=None)
 
-                st.session_state.y = y
-                st.session_state.y_pred = y_pred
-                st.session_state.y_prob = y_prob
-                st.session_state.df_amostra = df_amostra
+        barra.progress(40)
+
+        X = df_amostra.drop(columns=["risco_alto"])
+        y = df_amostra["risco_alto"]
+
+        barra.progress(60)
+
+        y_prob = modelo.predict_proba(X)[:, 1]
+
+        barra.progress(80)
+
+        y_pred = (y_prob >= threshold).astype(int)
+
+        barra.progress(100)
+
+        barra.empty()
+
+        st.session_state.y = y
+        st.session_state.y_pred = y_pred
+        st.session_state.y_prob = y_prob
+        st.session_state.df_amostra = df_amostra
 
 if st.session_state.processado:
 
@@ -418,23 +442,31 @@ if st.session_state.processado:
     # IMPORTANCIA DAS VARIÁVEIS
     # =====================================================
     with st.expander("Análise de Variáveis",expanded=False):
-        #st.subheader("Resultados")
-        top10 = df_importancia.head(10)
 
-        fig, ax = plt.subplots()
+        # criar colunas
+        col1, col2, col3 = st.columns([1,3,1])
 
-        ax.barh(
-            top10["variavel"],
-            top10["importancia"]
-        )
+        with col2:
+            #st.subheader("Resultados")
+            top10 = df_importancia.head(5)
 
-        ax.set_title(
-            "Importância das Variáveis"
-        )
+            fig, ax = plt.subplots(figsize=(7, 4))
 
-        ax.invert_yaxis()
+            ax.barh(
+                top10["variavel"],
+                top10["importancia"] * 100,
+                color="#954535"
+            )
 
-        st.pyplot(fig)
+            ax.set_xlabel("Importância (%)")
+
+            ax.set_title(
+                "Importância das Variáveis"
+            )
+
+            ax.invert_yaxis()
+
+            st.pyplot(fig)
 
     # =====================================================
     # ACERTOS
@@ -456,7 +488,7 @@ if st.session_state.processado:
             f"Quantidade de acertos: {len(acertos)}"
         )
         acertos_df = (
-            acertos.head()
+            acertos
             .style
             .format({"idade": "{:.0f}"})
             .set_properties(**{
@@ -484,7 +516,7 @@ if st.session_state.processado:
         )
 
         erros_df = (
-            erros.head()
+            erros
             .style
             .format({"idade": "{:.0f}"})
             .set_properties(**{
