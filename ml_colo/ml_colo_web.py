@@ -29,11 +29,20 @@ st.set_page_config(
     layout="wide"
 )
 
-# CSS da aplicação
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 2rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# CSS da aplicação  #DE9BA9 #FAFAFA
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {
-    background-color:#c85162;
+    background-color:#790E18;  
+          
 }
 </style>
 """, unsafe_allow_html=True)
@@ -41,12 +50,21 @@ st.markdown("""
 col1, col2, col3 = st.columns([4,1,2])
 
 with col1:
-    st.title("Aplicação de Modelo de Machine Learning na Predição de Risco para Câncer Cervical")
+    st.markdown("""
+        <h1 style="
+            margin-top:0px;
+            margin-bottom:0px;
+        ">
+        Aplicação de Modelo de Machine Learning na Predição de Risco para Câncer Cervical
+        </h1>
+        """, unsafe_allow_html=True)
+    
     st.markdown(
             """<span style="
                     color:gray;
                     font-size:20px;
                     font-weight:bold;
+                    margin-top:0px;
                 ">
                    Algoritmo: Random Forest Classifier (Scikit-Learn)
                 </span>
@@ -57,7 +75,7 @@ with col3:
     st.write("")
     st.image("logo_white.png", width=400)
 
-st.divider()
+#st.divider()
 
 # =====================================================
 # CARREGAR MODELO
@@ -101,45 +119,42 @@ df = pd.read_csv(
     encoding="utf-8-sig"
 )
 
-col1,col2 =st.columns([1,4])
-with col1:
-    st.markdown(
-            f"""<span style="
-                    color:gray;
-                    font-size:20px;
-                    font-weight:bold;
-                ">Conjunto de Dados para Predição
-                </span>
-                Quantidade de registros: {len(df)}
-                """,
-                unsafe_allow_html=True)
+#col1,col2 =st.columns([1,4])
+#with col1:
 
-st.caption("Informações provenientes de Sistemas de Informação em Saúde")
-
-styled_df = (
-    df.head()
-      .style
-      .format({"idade": "{:.0f}"})
-      .set_properties(**{
-          "background-color": "#ffffff",
-          "color": "black"
-      })
-)
-
-
-st.dataframe(styled_df, hide_index=True)
-
-
-#with st.expander("Configuração da Simulação",expanded = True):
 with st.sidebar:
-    st.header("Configuração da Simulação")
+    st.markdown("""
+    <h2 style="color:#FFFFFF;">
+        Processamento do Conjunto de Teste
+    </h2>
+    """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns([2,1])
+    st.markdown("""
+    <div style="
+        color:white;
+        font-size:13px;
+        line-height:1.4;
+    ">
+        Selecione a proporção de registros do conjunto de teste
+        que será processada pelo modelo de Machine Learning para
+        geração das métricas, gráficos e resultados de predição.
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns([3,2])
 
     with col1:
 
+        st.markdown("""
+        <style>
+        [data-testid="stSidebar"] label {
+            color: white !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
         percentual = st.number_input(
-            "Percentual (%)",
+            "Percentual da Amostra (%)",
             min_value=1,
             max_value=100,
             value=100
@@ -150,11 +165,19 @@ with st.sidebar:
         qtd_registros = round(
             len(df) * percentual / 100
         )
-
-        st.metric(
-            "Registros",
-            qtd_registros
-        )
+        st.write("")
+        st.markdown(f"""
+        <div style="
+            border-radius:8px;
+        ">
+            <div style="color:white;font-size:14px;margin-bottom:10px;">
+                Registros Selecionados
+            </div>
+            <div style="color:white;font-size:20px;text-align:center;">
+                {qtd_registros:,}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # col1, col2, col3 = st.columns([1,4,1])
 
@@ -163,11 +186,11 @@ with st.sidebar:
     st.markdown("""
     <style>
     div.stButton > button {
-        background-color: #954535;
-        color: white;
+        background-color: #e6e3dc;
+        color: #790E18;
         border-radius: 8px;
+        font-weight: 700;
     }
-
     div.stButton > button:hover {
         background-color: #B7410E;
         color: white;
@@ -178,7 +201,7 @@ with st.sidebar:
     if "processado" not in st.session_state:
         st.session_state.processado = False
 
-    if st.button("Processar Modelo", use_container_width=True):
+    if st.button("Executar Modelo", use_container_width=True):
 
         barra = st.progress(0)
 
@@ -209,6 +232,44 @@ with st.sidebar:
         st.session_state.y_prob = y_prob
         st.session_state.df_amostra = df_amostra
 
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "⚙️ Descrição",
+    "📊 Desempenho",
+    "📈 Variáveis",
+    "✅ Acertos",
+    "❌ Erros"
+])
+
+with tab1:
+    st.markdown(
+            f"""<span style="
+                    color:gray;
+                    font-size:20px;
+                    font-weight:bold;
+                ">Conjunto de Dados para Predição
+                </span>
+                <br>
+                <span>
+                    Quantidade de registros: {len(df)}
+                </span>
+                """,
+                unsafe_allow_html=True)
+
+    st.caption("Informações provenientes de Sistemas de Informação em Saúde")
+
+    styled_df = (
+        df.head()
+        .style
+        .format({"idade": "{:.0f}"})
+        .set_properties(**{
+            "background-color": "#ffffff",
+            "color": "black"
+        })
+    )
+
+
+    st.dataframe(styled_df, hide_index=True)
+
 if st.session_state.processado:
 
     df_amostra = st.session_state.df_amostra
@@ -227,7 +288,7 @@ if st.session_state.processado:
     # =====================================================
     # MÉTRICAS
     # =====================================================
-    with st.expander("Desempenho do Modelo",expanded=False):
+    with tab2:       
         st.subheader("Resultados")
 
         col1, col2, col3, col4, col5, col6, col7, col8, col9, col10 = st.columns([2,1,2,1,2,1,2,1,2,1])
@@ -441,7 +502,7 @@ if st.session_state.processado:
     # =====================================================
     # IMPORTANCIA DAS VARIÁVEIS
     # =====================================================
-    with st.expander("Análise de Variáveis",expanded=False):
+    with tab3:
 
         # criar colunas
         col1, col2, col3 = st.columns([1,3,1])
@@ -474,7 +535,7 @@ if st.session_state.processado:
     
 
 
-    with st.expander("Registros Corretamente Classificados",expanded=False):
+    with tab4:
         acertos = resultado[
             resultado["classe_real"]
             ==
@@ -502,7 +563,7 @@ if st.session_state.processado:
     # ERROS
     # =====================================================
 
-    with st.expander("Registros Incorretamente Classificados",expanded=False):
+    with tab5:
         erros = resultado[
             resultado["classe_real"]
             !=
