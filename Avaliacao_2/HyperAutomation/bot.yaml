@@ -1,0 +1,5 @@
+# BotCity Bot Configuration
+bot_id: "HyperAutomation"
+version: "1.0.0"
+project_type: "python"
+main_file: "bot.py"
