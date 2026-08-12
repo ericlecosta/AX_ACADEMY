@@ -1,0 +1,31 @@
+# Credenciais e Ambientes
+HyperAutomation/source/.env
+.venv/
+venv/
+ENV/
+
+# Python Cache & Compiled Files
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Documentos Temporários / Gerados
+*.docx
+
+# Navegador e Cache Playwright
+browser_data/
+**/browser_data/
+
+# ERP Simulado - Arquivos de Entrada e Saída
+ERP_Portal_Fake/Downloads/*
+ERP_Portal_Fake/Documentos_OK/*
+ERP_Portal_Fake/Documentos_Pendentes/*
+ERP_Portal_Fake/Encaminhados/*
+!ERP_Portal_Fake/**/.gitkeep
+
+# Credenciais do Google Drive
+HyperAutomation/source/credentials.json
+HyperAutomation/source/token.json
+**/credentials.json
+**/token.json

@@ -2,11 +2,13 @@
 Módulo responsável pelo monitoramento da caixa de entrada, leitura de e-mails de retorno de clientes e download dos PDFs unificados.
 """
 import os
+import re
 import imaplib
 import email
 from email.header import decode_header
 from pathlib import Path
 from dotenv import load_dotenv
+from pypdf import PdfReader
 from common.protocolo import gerar_protocolo_unico
 
 load_dotenv()
@@ -94,19 +96,84 @@ class LeitorEmail:
 
         anexos_baixados = self.baixar_anexos(msg)
 
+        dados_ficha = self._extrair_dados_ficha_pdf(anexos_baixados)
+
         return {
             "remetente": remetente,
             "assunto": assunto,
             "anexos": anexos_baixados,
             "dados_cliente": {
-                "Nome": "Cliente",
-                "Sobrenome": "Retorno",
-                "CPF": "11122233344",
-                "Email": remetente,
-                "Telefone": "(92) 99888-1122",
-                "Endereco": "Rua das Flores, 123 - Manaus/AM"
+                "Nome": dados_ficha.get("nome", "Cliente"),
+                "Sobrenome": dados_ficha.get("sobrenome", "Retorno"),
+                "CPF": dados_ficha.get("cpf", "11122233344"),
+                "Email": dados_ficha.get("email") or remetente,
+                "Telefone": dados_ficha.get("telefone", "(92) 99888-1122"),
+                "Nascimento": dados_ficha.get("nascimento", ""),
+                "Endereco": dados_ficha.get("endereco", "Rua das Flores, 123 - Manaus/AM")
             }
         }
+
+    def _extrair_dados_ficha_pdf(self, anexos: list) -> dict:
+        """
+        Extrai os dados da Ficha de Cadastro (nome, sobrenome, CPF, e-mail, telefone,
+        data de nascimento e endereço) a partir do texto do PDF retornado pelo cliente.
+
+        Espera o mesmo formato numerado gerado por common/documento_email.py:
+            1. Nome: ...
+            2. Sobrenome: ...
+            3. CPF: ...
+            4. E-mail: ...
+            5. Telefone: ...
+            6. Data de Nascimento: ...
+            7. Endereço: ...
+
+        Percorre os PDFs anexados até encontrar um cujo texto contenha, no mínimo,
+        Nome e CPF preenchidos. Se o PDF for uma imagem escaneada (sem texto
+        extraível), retorna vazio — nesse caso seria necessário OCR (não implementado).
+        """
+        campos = {
+            "nome": r"1\.\s*Nome:\s*(.+)",
+            "sobrenome": r"2\.\s*Sobrenome:\s*(.+)",
+            "cpf": r"3\.\s*CPF:\s*(.+)",
+            "email": r"4\.\s*E-?mail:\s*(.+)",
+            "telefone": r"5\.\s*Telefone:\s*(.+)",
+            "nascimento": r"6\.\s*Data de Nascimento:\s*(.+)",
+            "endereco": r"7\.\s*Endere[cç]o:\s*(.+)",
+        }
+
+        for anexo in anexos:
+            caminho = Path(anexo)
+            if caminho.suffix.lower() != ".pdf":
+                continue
+
+            try:
+                texto = ""
+                reader = PdfReader(caminho)
+                for pagina in reader.pages:
+                    texto += (pagina.extract_text() or "") + "\n"
+
+                dados = {}
+                for chave, padrao in campos.items():
+                    match = re.search(padrao, texto, re.IGNORECASE)
+                    if not match:
+                        continue
+                    valor = match.group(1).strip()
+                    # Evita colar o próximo campo numerado na mesma captura
+                    valor = re.split(r"\s{2,}\d\.\s", valor)[0].strip()
+                    if valor:
+                        dados[chave] = valor
+
+                if dados.get("nome") and dados.get("cpf"):
+                    print(f"[LEITOR EMAIL] Dados da Ficha extraídos de '{caminho.name}': "
+                          f"{dados.get('nome')} {dados.get('sobrenome', '')} | CPF: {dados.get('cpf')}")
+                    return dados
+
+            except Exception as e:
+                print(f"[LEITOR EMAIL] Aviso: não foi possível ler '{caminho.name}' em busca da Ficha de Cadastro: {e}")
+
+        print("[LEITOR EMAIL] Aviso: não foi possível localizar os dados da Ficha de Cadastro nos anexos "
+              "(PDF sem texto extraível ou fora do formato esperado). Usando dados de fallback.")
+        return {}
 
     def baixar_anexos(self, mensagem) -> list:
         """
