@@ -1,4 +1,5 @@
 # Credenciais e Ambientes
+.env
 HyperAutomation/source/.env
 .venv/
 venv/
